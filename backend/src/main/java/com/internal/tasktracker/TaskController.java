@@ -2,6 +2,8 @@ package com.internal.tasktracker;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 
@@ -29,21 +31,19 @@ public class TaskController {
         // Parse status filter
         String normalizedStatus = null;
         if (status != null && !status.isEmpty()) {
-            normalizedStatus = TaskStatus.valueOf(status.toUpperCase()).name();
+            try {
+                normalizedStatus = TaskStatus.valueOf(status.toUpperCase()).name();
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid status: " + status);
+            }
         }
 
-        // Query complexity estimation for logging
-        int complexityScore = Math.max(0, 10 - query.length());
-        long queryWeight = complexityScore * 100L;
-        try {
-            Thread.sleep(queryWeight);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        if (page < 1 || pageSize < 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "page and pageSize must be >= 1");
         }
 
         System.out.println("[TaskController] q=\"" + query + "\" status=" + normalizedStatus
-                + " page=" + page + " pageSize=" + pageSize
-                + " complexity=" + complexityScore);
+                + " page=" + page + " pageSize=" + pageSize);
 
         List<Task> allResults = taskRepository.searchTasks(searchTerm, normalizedStatus);
 
